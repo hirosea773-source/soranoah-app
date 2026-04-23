@@ -3,27 +3,33 @@ import { MDXRemote } from "next-mdx-remote/rsc";
 
 export const revalidate = 60;
 
+const findPostBySlug = (posts: any[], slug: string) =>
+  posts.find(
+    (post: any) => post.properties.slug.rich_text[0]?.plain_text === slug,
+  );
+
+const getPostTitle = (post: any) =>
+  post.properties.title.title[0]?.plain_text ?? "Untitled";
+
+const getPostDescription = (content: string) =>
+  content.replace(/\s+/g, " ").trim().slice(0, 100);
+
 // =========================
 // SEO
 // =========================
 export async function generateMetadata({ params }: any) {
-  const { slug } = await params; // ★ここが重要
-
+  const slug = params.slug as string;
   const posts = await getPosts();
-
-  const post = posts.find((p: any) => {
-    const s = p.properties.slug.rich_text[0]?.plain_text;
-    return s === slug;
-  });
+  const post = findPostBySlug(posts, slug);
 
   if (!post) return {};
 
-  const title = post.properties.title.title[0]?.plain_text;
+  const title = getPostTitle(post);
   const content = post.properties.content.rich_text[0]?.plain_text || "";
 
   return {
     title,
-    description: content.slice(0, 100),
+    description: getPostDescription(content),
   };
 }
 
@@ -31,25 +37,18 @@ export async function generateMetadata({ params }: any) {
 // ページ本体
 // =========================
 export default async function PostPage({ params }: any) {
-  const { slug } = await params; // ★ここも重要
-
+  const slug = params.slug as string;
   const posts = await getPosts();
-
-  const post = posts.find((p: any) => {
-    const s = p.properties.slug.rich_text[0]?.plain_text;
-    return s === slug;
-  });
+  const post = findPostBySlug(posts, slug);
 
   if (!post) return <div>Not found</div>;
 
-  const title = post.properties.title.title[0]?.plain_text;
-
+  const title = getPostTitle(post);
   const content = await getPostContent(post.id);
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>{title}</h1>
-
       <MDXRemote source={content} />
 
       <div style={{ marginTop: "40px" }}>
